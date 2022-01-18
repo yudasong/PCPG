@@ -51,7 +51,7 @@ class DiabolicalLockMaze(object):
 
         self.n_features = self.locks[0].observation_space.shape[0] + 1
         self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=(self.n_features,), dtype=np.float)
-                
+
     def reset(self):
         self.h = 0
         obs = np.zeros(self.observation_space.shape)
@@ -82,6 +82,56 @@ class DiabolicalLockMaze(object):
         obs = np.append(obs, self.lock_id)
         return obs, reward, done, info
 
+class CombLock(object):
+
+    def __init__(self, horizon, seed=1, noise='bernoulli', variable_latent=False, env_temperature=0.1):
+        self.horizon = horizon
+        self.n_states = 3
+        self.num_actions = 10
+        self.lock = build_env_homer(horizon=horizon-1, seed=seed)
+        #print(horizon)
+        self.optimal_reward = 1.0
+        self.lock.env.optimal_reward = self.optimal_reward
+
+        self.reward_range = (0, self.optimal_reward)
+        self.metadata = None
+        self.action_space = gym.spaces.Discrete(self.num_actions)
+
+        #self.n_features = self.lock.observation_space.shape[0]
+
+        self.observation_dim = 2 ** int(math.ceil(np.log2(self.horizon+4)))
+
+        self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=(self.observation_dim,),dtype=np.float)
+
+        self.variable_latent = variable_latent
+        self.env_temperature = env_temperature
+
+
+    def reset(self):
+        self.h = 0
+        obs = np.zeros(self.observation_space.shape)
+        return obs
+
+    def seed(self, seed):
+        pass
+
+    def step(self, action):
+        if self.h == 0:
+            # initial state, action will choose lock
+            obs = self.lock.reset()
+            reward = 0.0
+            done = False
+            info = {'state': (0, self.h)}
+        else:
+            obs, reward, done, info = self.lock.step(action)
+            info['state'] = info['state']
+
+        if self.variable_latent:
+            self.lock.env.sample_latent(self.env_temperature)
+
+        self.h += 1
+
+        return obs, reward, done, info
 
 
 
@@ -93,7 +143,7 @@ def build_env_homer(horizon=10, seed=1):
     import homer_envs
     config = homer_envs.default_config.default_config()
     config['horizon'] = horizon
-    config['noise'] = 'none'
+    config['noise'] = 'hadamhardg'
     config['save_trace'] = False
     config['seed'] = seed
     homer_envs.environment_wrapper.GenerateEnvironmentWrapper.adapt_config_to_domain('diabcombolock', config)
@@ -125,13 +175,17 @@ def build_env_combolock(horizon=10):
 
 
 # adapted from https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
-def make_env(env_id, seed, rank, episode_life=True, horizon=4, noise='bernoulli', dimension=30):
+def make_env(env_id, seed, rank, episode_life=True, horizon=30, noise='hadamhardg', dimension=30, env_temperature=0.1):
     def _thunk():
         random_seed(seed)
         if 'diabcombolockhallway' == env_id:
             env = DiabolicalLockMaze(horizon=horizon, seed=seed, noise=noise)
+        elif 'comblock' == env_id:
+            env = CombLock(horizon=horizon, seed=seed, noise=noise)
+        elif 'comblockvar' == env_id:
+            env = CombLock(horizon=horizon, seed=seed, noise=noise, variable_latent=True, env_temperature=env_temperature)
         elif 'maze' == env_id:
-            env = build_env_maze(horizon=100, size=20)            
+            env = build_env_maze(horizon=100, size=20)
         elif env_id.startswith("dm"):
             import dm_control2gym
             _, domain, task = env_id.split('-')
@@ -267,20 +321,21 @@ class Task:
                  name,
                  num_envs=1,
                  single_process=True,
-                 seed = 1, 
+                 seed = 1,
                  log_dir=None,
                  episode_life=True,
                  horizon=10,
-                 noise='bernoulli', 
-                 dimension=30):
+                 noise='bernoulli',
+                 dimension=30,
+                 env_temperature=0.1):
         if log_dir is not None:
             mkdir(log_dir)
-        if 'diabcombolockhallway' in name:
-            env = make_env(name, seed, 0, episode_life, horizon=horizon, noise=noise)
+        if 'lock' in name:
+            env = make_env(name, seed, 0, episode_life, horizon=horizon, noise=noise, env_temperature=env_temperature)
             envs = [env for i in range(num_envs)]
         elif 'maze' == name:
             env = make_env(name, seed, 0, episode_life, horizon=horizon)
-            envs = [env for i in range(num_envs)]            
+            envs = [env for i in range(num_envs)]
         else:
             envs = [make_env(name, seed, i, episode_life) for i in range(num_envs)]
         if single_process:

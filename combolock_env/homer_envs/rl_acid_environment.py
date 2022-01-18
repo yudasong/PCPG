@@ -29,7 +29,7 @@ class Environment(object):
         if self.h == self.horizon:
             return None
         return self.actions
-    
+
     def make_obs(self, s):
         return s
 
@@ -76,8 +76,15 @@ class DiabolicalCombinationLock(Environment):
         self.horizon = horizon
         self.swap = swap
         self.noise_type = noise_type
+
+        #print(noise_type)
+
         self.num_actions = num_actions
+
         self.optimal_reward = optimal_reward
+
+        #print(optimal_reward)
+
         self.optimal_reward_prob = 1.0
         self.rng = np.random.RandomState(seed)
 
@@ -93,6 +100,8 @@ class DiabolicalCombinationLock(Environment):
         self.opt_a = self.rng.randint(low=0, high=self.num_actions, size=self.horizon)
         self.opt_b = self.rng.randint(low=0, high=self.num_actions, size=self.horizon)
 
+        #print(noise_type)
+
         if noise_type == Environment.GAUSSIAN:
 
             # We encode the state type and time separately. The type is one of the 3 and the time could be any value
@@ -104,7 +113,7 @@ class DiabolicalCombinationLock(Environment):
             # We encode the state type and time separately. The type is one of the 3 and the time could be any value
             # in 1 to horizon + 1. We further add noise of size horizon.
             self.dim = self.horizon + 4 + self.horizon  # Add noise of length horizon
-            
+
 
         elif noise_type == Environment.HADAMHARD:
 
@@ -124,6 +133,8 @@ class DiabolicalCombinationLock(Environment):
 
         else:
             raise AssertionError("Unhandled noise type %r" % self.noise_type)
+
+        #print(self.optimal_reward)
 
     def transition(self, x, a):
 
@@ -156,7 +167,7 @@ class DiabolicalCombinationLock(Environment):
                 v = np.zeros(self.dim, dtype=float)
                 v[x[0]] = 1.0
                 v[3 + x[1]] = 1.0
-            
+
             elif self.noise_type == Environment.BERNOULLI:
 
                 v = np.zeros(self.dim, dtype=float)
@@ -185,12 +196,23 @@ class DiabolicalCombinationLock(Environment):
                 v[x[0]] = 1.0
                 v[3 + x[1]] = 1.0
                 v = v + self.rng.normal(loc=0.0, scale=0.1, size=v.shape)
+                self.var_latent = v[:3]
                 v = np.matmul(self.hadamhard_matrix, v)
 
             else:
                 raise AssertionError("Unhandled noise type %r" % self.noise_type)
 
+
+
             return v
+
+    def sample_latent(self, env_temperature):
+        latent_exp = np.exp(self.var_latent / env_temperature)
+        softmax = latent_exp / latent_exp.sum(axis=-1, keepdims=True)
+
+        #print(softmax)
+
+        self.state[0] = np.random.choice(3,p=softmax)
 
     def start(self):
 
@@ -208,16 +230,17 @@ class DiabolicalCombinationLock(Environment):
 
         # If the agent reaches the final live states then give it the optimal reward.
         if (x == [0, self.horizon-1] and a == self.opt_a[x[1]]) or (x == [1, self.horizon-1] and a == self.opt_b[x[1]]):
-            return self.optimal_reward * self.rng.binomial(1, self.optimal_reward_prob)
+            #return self.optimal_reward * self.rng.binomial(1, self.optimal_reward_prob)
+            return self.optimal_reward
 
         # If reaching the dead state for the first time then give it a small anti-shaping reward.
         # This anti-shaping reward is anti-correlated with the optimal reward.
         if x is not None and next_x is not None:
             if x[0] != 2 and next_x[0] == 2:
                 return self.anti_shaping_reward * self.rng.binomial(1, 0.5)
-            elif x[0] != 2 and next_x[0] != 2:
-                return -self.anti_shaping_reward2 / (self.horizon-1)
-        
+            # elif x[0] != 2 and next_x[0] != 2:
+            #     return -self.anti_shaping_reward2 / (self.horizon-1)
+
 
         return 0
 
@@ -254,7 +277,7 @@ class DiabolicalCombinationLock(Environment):
 
 class RandomGridWorld(Environment):
     """
-    A M x M grid with walls and a trembling hand. 
+    A M x M grid with walls and a trembling hand.
     Horizon is always 2 M
     """
     def __init__(self, M, swap=0.1, dim=2, noise=0.0):
@@ -280,7 +303,7 @@ class RandomGridWorld(Environment):
         return False
 
     def generate_maze(self, M):
-        """ 
+        """
         Adapted from http://code.activestate.com/recipes/578356-random-maze-generator/
         """
         mx = M; my = M
@@ -427,4 +450,3 @@ def run_rl_acid_environment(env_name):
                 (x,r) = E.act(actions[a])
                 if r == 1:
                     print("Success: T = %d" % (T))
-

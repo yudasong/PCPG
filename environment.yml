@@ -3,7 +3,6 @@ channels:
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
-  - _pytorch_select=0.2=gpu_0
   - _tflow_select=2.1.0=gpu
   - absl-py=0.11.0=pyhd3eb1b0_1
   - astor=0.8.1=py37h06a4308_0
@@ -12,8 +11,6 @@ dependencies:
   - ca-certificates=2021.1.19=h06a4308_0
   - certifi=2020.12.5=py37h06a4308_0
   - cffi=1.14.4=py37h261ae71_0
-  - cudatoolkit=10.1.243=h6bb024c_0
-  - cudnn=7.6.5=cuda10.1_0
   - cupti=10.1.168=0
   - freetype=2.10.4=h5ab3b9f_0
   - gast=0.4.0=py_0
@@ -54,7 +51,6 @@ dependencies:
   - protobuf=3.14.0=py37h2531618_1
   - pycparser=2.20=py_2
   - python=3.7.9=h7579374_0
-  - pytorch=1.4.0=cuda101py37h02f0884_0
   - readline=8.0=h7b6447c_0
   - scipy=1.6.0=py37h91f5cce_0
   - setuptools=52.0.0=py37h06a4308_0
@@ -67,7 +63,6 @@ dependencies:
   - tensorflow-gpu=1.14.0=h0d30ee6_0
   - termcolor=1.1.0=py37_1
   - tk=8.6.10=hbc83047_0
-  - torchvision=0.2.1=py37_0
   - typing_extensions=3.7.4.3=py_0
   - werkzeug=1.0.1=pyhd3eb1b0_0
   - wheel=0.36.2=pyhd3eb1b0_0
@@ -76,5 +71,4 @@ dependencies:
   - zipp=3.4.0=pyhd3eb1b0_0
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.5=h9ceee32_0
-prefix: /private/home/mikaelhenaff/.conda/envs/my_pytorch_env
 

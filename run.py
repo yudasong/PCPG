@@ -24,30 +24,31 @@ def ppo_feature(**kwargs):
     config.log_interval = 1000
     config.num_workers = 100
 
-    config.task_fn = lambda: Task(config.game, num_envs=config.num_workers, single_process=True, seed=config.seed, horizon = config.horizon)
+    config.task_fn = lambda: Task(config.game, num_envs=config.num_workers, single_process=True, seed=config.seed,
+                                    horizon = config.horizon, env_temperature=config.env_temperature)
     config.eval_env = Task(config.game, seed=config.seed, horizon=config.horizon)
     config.optimizer_fn = lambda params: torch.optim.RMSprop(params, config.lr)
     config.state_dim = config.eval_env.state_dim
-    
+
     base_network = FCBody(config.state_dim)
 
-    
+
     if config.alg != 'ppo':
         if config.norm_rew_b == 1:
             config.reward_bonus_normalizer = MeanStdNormalizer()
         else:
             config.reward_bonus_normalizer = RescaleNormalizer()
-        
+
     agent.logger = Logger(None, config.log_dir + '/tensorboard/')
 
-    
+
     if isinstance(config.task_fn().action_space, Box):
         config.network_fn = lambda: GaussianActorCriticNet(config.state_dim, config.action_dim, base_network)
     elif isinstance(config.task_fn().action_space, Discrete):
         config.network_fn = lambda: CategoricalActorCriticNet(config.state_dim, config.action_dim, base_network)
-    
 
-    
+
+
     config.discount = 0.99
     config.use_gae = True
     config.gae_tau = 0.95
@@ -65,9 +66,9 @@ def ppo_pixel(**kwargs):
     kwargs.setdefault('log_level', 0)
     config = Config()
     config.merge(kwargs)
-    
+
     agent.logger = Logger(None, config.log_dir + '/tensorboard/')
-    
+
     config.task_fn = lambda: Task(config.game, num_envs=config.num_workers)
     config.eval_env = Task(config.game)
     config.num_workers = 8
@@ -90,7 +91,7 @@ def ppo_pixel(**kwargs):
     config.log_interval = 128 * 8
     config.max_steps = int(2e7)
     run_steps(PPOAgent(config))
-    
+
 
 
 def pcpg_feature(**kwargs):
@@ -113,14 +114,14 @@ def pcpg_feature(**kwargs):
     base_network = FCBody(config.state_dim)
     config.optimization_epochs = 5
     config.mini_batch_size = 32 * 5
-    
-    
+
+
 
     if isinstance(config.task_fn().action_space, Box):
         config.network_fn = lambda: GaussianActorCriticNet(config.state_dim, config.action_dim, base_network)
     elif isinstance(config.task_fn().action_space, Discrete):
         config.network_fn = lambda: CategoricalActorCriticNet(config.state_dim, config.action_dim, base_network)
-    
+
     config.discount = 0.99
     config.use_gae = True
     config.gae_tau = 0.95
@@ -129,9 +130,9 @@ def pcpg_feature(**kwargs):
     config.rollout_length = config.horizon
     config.ppo_ratio_clip = 0.2
     config.max_steps = 10e9*config.horizon
-    
+
     if 'combolock' in config.game:
-        config.start_exploit = config.horizon 
+        config.start_exploit = config.horizon
         config.max_epochs = 3*config.horizon
         config.rmax = 5.0
         config.n_rollouts_for_density_est = 50
@@ -142,7 +143,7 @@ def pcpg_feature(**kwargs):
             config.rmax = 100 # hardcoding for now
         config.n_rollouts_for_density_est = 10
 
-    
+
     if config.alg == 'ppo-pcpg':
         run_steps(PCPGAgent(config))
     elif config.alg == 'ppo-pcpg2':
@@ -161,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('-horizon', type=int, default=5, help='horizon for combolock')
     parser.add_argument('-alg', type=str, default='ppo-pcpg', help='ppo-pcpg | ppo-rnd | ppo')
     parser.add_argument('-lr', type=float, default=0.001, help='learning rate')
+    parser.add_argument('-env_temperature', type=float, default=0.1)
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-bonus_coeff', type=float, default=1.0, help='coefficient for intrinsic reward')
     # PCPG hyperparameters
@@ -196,20 +198,21 @@ if __name__ == '__main__':
                         log_dir = config.log_dir,
                         rnd = 0,
                         alg='ppo',
-                        system = config.system)        
+                        system = config.system)
     elif config.alg == 'ppo-rnd':
         ppo_feature(game=config.env,
                     lr=config.lr,
                     horizon=config.horizon,
                     seed=config.seed,
                     rnd = 1,
-                    phi_dim = config.phi_dim, 
+                    phi_dim = config.phi_dim,
                     rnd_bonus = config.bonus_coeff,
                     alg='ppo-rnd',
                     log_dir = config.log_dir,
                     norm_rew=config.norm_rew,
                     norm_rew_b=config.norm_rew_b,
-                    system = config.system)
+                    system = config.system,
+                    env_temperature=config.env_temperature)
     elif config.alg in ['ppo-pcpg', 'ppo-pcpg2']:
         pcpg_feature(game=config.env,
                     lr=config.lr,
@@ -218,9 +221,9 @@ if __name__ == '__main__':
                     seed=config.seed,
                     eps = config.eps,
                     proll = config.proll,
-                    bonus = config.bonus, 
+                    bonus = config.bonus,
                     bonus_coeff = config.bonus_coeff,
-                    phi_dim = config.phi_dim, 
+                    phi_dim = config.phi_dim,
                     n_policy_loops = config.n_policy_loops,
                     n_traj_per_loop = config.n_traj_per_loop,
                     alg=config.alg,
