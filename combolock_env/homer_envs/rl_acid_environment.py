@@ -33,7 +33,7 @@ class Environment(object):
     def make_obs(self, s):
         return s
 
-    def act(self, a):
+    def act(self, a, dense=False):
         if self.state is None:
             raise Exception("Episode not started")
 
@@ -43,7 +43,7 @@ class Environment(object):
             new_state = self.transition(self.state, a)
             self.h += 1
 
-        r = self.reward(self.state, a, new_state)
+        r = self.reward(self.state, a, new_state, dense=dense)
         self.state = new_state
 
         # Create a dictionary containing useful debugging information
@@ -226,7 +226,7 @@ class DiabolicalCombinationLock(Environment):
         else:
             raise AssertionError("Toss value can only be 1 or 0. Found %r" % toss_value)
 
-    def reward(self, x, a, next_x):
+    def reward(self, x, a, next_x, dense=False):
 
         # If the agent reaches the final live states then give it the optimal reward.
         if (x == [0, self.horizon-1] and a == self.opt_a[x[1]]) or (x == [1, self.horizon-1] and a == self.opt_b[x[1]]):
@@ -236,8 +236,11 @@ class DiabolicalCombinationLock(Environment):
         # If reaching the dead state for the first time then give it a small anti-shaping reward.
         # This anti-shaping reward is anti-correlated with the optimal reward.
         if x is not None and next_x is not None:
-            if x[0] != 2 and next_x[0] == 2:
+            if x[0] != 2 and next_x[0] == 2 and not dense:
                 return self.anti_shaping_reward * self.rng.binomial(1, 0.5)
+            elif x[0] != 2 and next_x[0] != 2 and dense:
+                #print("dense")
+                return 1/self.horizon
             # elif x[0] != 2 and next_x[0] != 2:
             #     return -self.anti_shaping_reward2 / (self.horizon-1)
 

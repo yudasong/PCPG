@@ -84,7 +84,7 @@ class DiabolicalLockMaze(object):
 
 class CombLock(object):
 
-    def __init__(self, horizon, seed=1, noise='bernoulli', variable_latent=False, env_temperature=0.1):
+    def __init__(self, horizon, seed=1, noise='bernoulli', variable_latent=False, env_temperature=0.1, dense=False):
         self.horizon = horizon
         self.n_states = 3
         self.num_actions = 10
@@ -106,6 +106,8 @@ class CombLock(object):
         self.variable_latent = variable_latent
         self.env_temperature = env_temperature
 
+        self.dense = dense
+
 
     def reset(self):
         self.h = 0
@@ -123,7 +125,8 @@ class CombLock(object):
             done = False
             info = {'state': (0, self.h)}
         else:
-            obs, reward, done, info = self.lock.step(action)
+            #print(self.lock)
+            obs, reward, done, info = self.lock.step(action, dense=self.dense)
             info['state'] = info['state']
 
         if self.variable_latent:
@@ -184,6 +187,8 @@ def make_env(env_id, seed, rank, episode_life=True, horizon=30, noise='hadamhard
             env = CombLock(horizon=horizon, seed=seed, noise=noise)
         elif 'comblockvar' == env_id:
             env = CombLock(horizon=horizon, seed=seed, noise=noise, variable_latent=True, env_temperature=env_temperature)
+        elif 'comblockdense' == env_id:
+            env = CombLock(horizon=horizon, seed=seed, noise=noise, dense=True)
         elif 'maze' == env_id:
             env = build_env_maze(horizon=100, size=20)
         elif env_id.startswith("dm"):

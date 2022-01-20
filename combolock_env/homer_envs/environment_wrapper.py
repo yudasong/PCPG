@@ -174,11 +174,11 @@ class GenerateEnvironmentWrapper(AbstractEnvironment):
         if self.homing_policy_validation_fn is not None:
             return self.homing_policy_validation_fn
 
-    def step(self, action):
+    def step(self, action, dense=False):
 
         if self.env_type == GenerateEnvironmentWrapper.RL_ACID:
 
-            observation, reward, info = self.env.act(action)
+            observation, reward, info = self.env.act(action, dense=dense)
             done = self.env.h == self.config['horizon']
             # TODO: check this is ok with Homer code
 #            done = observation is None

@@ -58,7 +58,7 @@ def ppo_feature(**kwargs):
     config.rollout_length = config.horizon
     config.mini_batch_size = 32 * 5
     config.ppo_ratio_clip = 0.2
-    config.max_steps = 5e5*config.horizon
+    config.max_steps = 1e6*config.horizon
     run_steps(PPOAgent(config))
 
 def ppo_pixel(**kwargs):
@@ -189,7 +189,8 @@ if __name__ == '__main__':
                         log_dir = config.log_dir,
                         rnd = 0,
                         alg='ppo',
-                        system = config.system)
+                        system = config.system,
+                        env_temperature=config.env_temperature)
         else:
             ppo_feature(game=config.env,
                         lr=config.lr,
@@ -198,7 +199,8 @@ if __name__ == '__main__':
                         log_dir = config.log_dir,
                         rnd = 0,
                         alg='ppo',
-                        system = config.system)
+                        system = config.system,
+                        env_temperature=config.env_temperature)
     elif config.alg == 'ppo-rnd':
         ppo_feature(game=config.env,
                     lr=config.lr,
