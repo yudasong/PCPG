@@ -91,8 +91,6 @@ class CombLock(object):
         self.lock = build_env_homer(horizon=horizon-1, seed=seed)
         #print(horizon)
         self.optimal_reward = 1.0
-        if dense:
-            self.optimal_reward = 4.0
         self.lock.env.optimal_reward = self.optimal_reward
 
         self.reward_range = (0, self.optimal_reward)

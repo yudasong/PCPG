@@ -240,7 +240,7 @@ class DiabolicalCombinationLock(Environment):
                 return self.anti_shaping_reward * self.rng.binomial(1, 0.5)
             elif x[0] != 2 and next_x[0] != 2 and dense:
                 #print("dense")
-                return 1/self.horizon
+                return 0.1
             # elif x[0] != 2 and next_x[0] != 2:
             #     return -self.anti_shaping_reward2 / (self.horizon-1)
 
